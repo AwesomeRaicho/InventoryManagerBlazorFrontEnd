@@ -1,0 +1,88 @@
+﻿@page "/test-form"
+@inject NavigationManager _navManager;
+@inject HttpClient Http;
+
+<h3>Submit a test form</h3>
+
+
+<EditForm Model="_testFormRequest" FormName="TestForm" OnValidSubmit="Submit" class="p-4">
+    <DataAnnotationsValidator></DataAnnotationsValidator>
+
+    @*UsedId*@
+    <div class="row mb-3">
+        <label class="form-label">User Id</label>
+        <div class="col-12 col-sm-5 col-lg-3">
+            <InputText @bind-Value="_testFormRequest.UserId" class="form-control"></InputText>
+        </div>
+        <div>
+            <ValidationMessage For="() => _testFormRequest.UserId" class="fst-italic text-danger" style="font-size: 12px;"></ValidationMessage>
+        </div>
+    </div>
+    @*Name*@
+    <div class="row mb-3">
+        <label class="form-label">Name</label>
+        <div class="col-12 col-sm-5 col-lg-3">
+            <InputText @bind-Value="_testFormRequest.Name" class="form-control"></InputText>
+        </div>
+        <div>
+            <ValidationMessage For="() => _testFormRequest.Name" class="fst-italic text-danger" style="font-size: 12px;"></ValidationMessage>
+        </div>
+    </div>
+    @*Age*@
+    <div class="row mb-3">
+        <label class="form-label">Age</label>
+        <div class="col-12 col-sm-5 col-lg-3">
+            <InputNumber @bind-Value="_testFormRequest.Age" class="form-control"></InputNumber>
+        </div>
+        <div>
+            <ValidationMessage For="() => _testFormRequest.Age" class="fst-italic text-danger" style="font-size: 12px;"></ValidationMessage>
+        </div>
+    </div>
+    @*Email*@
+        <div class="row mb-3">
+        <label class="form-label">Email</label>
+        <div class="col-12 col-sm-5 col-lg-3">
+            <InputText @bind-Value="_testFormRequest.Email" class="form-control"></InputText>
+        </div>
+        <div>
+            <ValidationMessage For="() => _testFormRequest.Email" class="fst-italic text-danger" style="font-size: 12px;"></ValidationMessage>
+        </div>
+    </div>
+    @*Password*@
+    <div class="row mb-3">
+        <label class="form-label">Password</label>
+        <div class="col-12 col-sm-5 col-lg-3">
+            <InputText @bind-Value="_testFormRequest.Password" class="form-control" type="password"></InputText>
+        </div>
+        <div>
+            <ValidationMessage For="() => _testFormRequest.Password" class="fst-italic text-danger" style="font-size: 12px;"></ValidationMessage>
+        </div>
+    </div>
+    @* <ValidationSummary></ValidationSummary> *@
+    <button type="submit" class="btn btn-primary">Submit</button>
+</EditForm>
+
+
+
+@code {
+    private TestFormRequest _testFormRequest = new();
+
+    private async void Submit()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync<TestFormRequest>("https://localhost:7200/api/Test/submit-form", _testFormRequest);
+
+            Console.WriteLine(response);
+
+
+        }catch(Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
+
+        _navManager.NavigateTo("/");
+    }
+
+
+}
