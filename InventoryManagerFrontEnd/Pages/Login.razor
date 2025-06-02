@@ -1,7 +1,71 @@
 ﻿@page "/login"
+@inject HttpClient Http;
 
 <h3>Login</h3>
 
+<EditForm Model="_tokenRequest" FormName="LoginForm" OnValidSubmit="Submit">
+    <DataAnnotationsValidator></DataAnnotationsValidator>
+
+    <div class="mb-3">
+        <div>
+            <label class="form-label">User</label>
+        </div>
+        <InputText @bind-Value="_tokenRequest.UserName"></InputText>
+        <div>
+            <ValidationMessage For="() => _tokenRequest.UserName" class="fst-italic text-danger" style="font-size: 12px;"></ValidationMessage>
+        </div>
+    </div>
+    <div class="mb-3">
+        <div >
+            <label class="form-label">Password</label>
+        </div>
+        <InputText @bind-Value="_tokenRequest.Password"></InputText>
+        <div>
+            <ValidationMessage type="password" For="() => _tokenRequest.Password " class="fst-italic text-danger" style="font-size: 12px;"></ValidationMessage>
+        </div>
+    </div>
+    <button class="btn btn-primary">Submit</button>
+</EditForm>
+
 @code {
+    private TokenRequest _tokenRequest = new();
+    private TokenResponse? _tokenResponse;
+    private async void Submit()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync<TokenRequest>("https://localhost:7200/api/Auth/login ", _tokenRequest);
+
+
+            var payload = await response.Content.ReadFromJsonAsync<TokenResponse>();
+
+
+            Console.WriteLine("Response: ");
+            Console.WriteLine(response);
+            Console.WriteLine("-------------------------------------------------------------");
+            Console.WriteLine("-------------------------------------------------------------");
+            Console.WriteLine("-------------------------------------------------------------");
+
+            if(payload != null)
+            {
+                Console.WriteLine("Payload: ");
+                Console.WriteLine($"Token: {payload.AccessToken}");
+                Console.WriteLine($"Refresh Token: {payload.RefreshToken}");
+                Console.WriteLine($"Expires: {payload.ExpiresAt}");
+
+            }
+            else
+            {
+                Console.WriteLine($"API returned Null.");
+
+            }
+
+
+        }catch(Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
 
 }
