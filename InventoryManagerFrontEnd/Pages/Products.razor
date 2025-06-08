@@ -1,8 +1,17 @@
-﻿@page "/products-type";
-@inject HttpClient _httpClient;
+﻿ @page "/products/{productTypeName}/{productTypeId}"
+
+
 <h3>Products</h3>
+<p>id: @ProductTypeId</p>
+<p>name: @ProductTypeName</p>
+
 
 @code {
+    [Parameter]
+    public string? ProductTypeName { get; set; }
+    [Parameter]
+    public string? ProductTypeId { get; set; }
 
-    
+
+
 }

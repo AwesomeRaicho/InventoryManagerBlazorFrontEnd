@@ -1,0 +1,20 @@
+﻿@page "/logout";
+
+@inject NavigationManager _navigationManager;
+@inject ITokenService _tokenService;
+
+<h3>Logout?</h3>
+
+
+<button type="submit" class="btn btn-primary" @onclick="@(Submit)">Yes, logout</button>
+
+
+
+@code {
+    private async Task Submit()
+    {
+        await _tokenService.LogOut();
+        _navigationManager.NavigateTo("/");
+        return;
+    }
+}

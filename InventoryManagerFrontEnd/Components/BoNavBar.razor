@@ -1,31 +1,68 @@
-﻿<nav class="navbar navbar-expand-lg navbar-light bg-light">
+﻿@inject ITokenService _tokenService;
+@inject NavigationManager _navigationManager;
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+
     <div class="container-fluid">
-        <a class="navbar-brand" href="#">Navbar</a>
+        <a class="navbar-brand" href="#">Drisfaces Kenia</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
-                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-                    </NavLink>
-                </li>
-                <li class="nav-item">
-                    <NavLink class="nav-link" href="products-type">
-                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Products
-                    </NavLink>
-                </li>
-                <li class="nav-item">
-                    <NavLink class="nav-link" href="login">
-                        <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Login
-                    </NavLink>
-                </li>
+                @if (_signed)
+                {
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                            <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="products-type">
+                            <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Products
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="logout">
+                            <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Logout
+                        </NavLink>
+                    </li>
+
+                }
+                else
+                {
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="login">
+                            <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Login
+                        </NavLink>
+                    </li>
+
+                    
+                }
+
+                
+
             </ul>
         </div>
     </div>
+
 </nav>
 
 @code {
+    private bool _signed;
+
+    protected override async void OnInitialized()
+    {
+        _signed =  await _tokenService.IsTokenValid();
+        _navigationManager.LocationChanged += OnLocationChanged;
+
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // Every time the route changes, re-check the token
+        _signed = await _tokenService.IsTokenValid();
+        StateHasChanged();
+    }
 
 }

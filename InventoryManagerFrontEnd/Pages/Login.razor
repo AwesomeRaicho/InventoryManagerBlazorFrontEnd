@@ -1,5 +1,8 @@
 ﻿@page "/login"
-@inject HttpClient Http;
+@inject HttpClient _http;
+@inject IConfiguration _configuration;
+@inject NavigationManager _navigationManager;
+@inject ITokenService _tokenService;
 
 <h3>Login</h3>
 
@@ -19,9 +22,9 @@
         <div >
             <label class="form-label">Password</label>
         </div>
-        <InputText @bind-Value="_tokenRequest.Password"></InputText>
+        <InputText type="password" @bind-Value="_tokenRequest.Password"></InputText>
         <div>
-            <ValidationMessage type="password" For="() => _tokenRequest.Password " class="fst-italic text-danger" style="font-size: 12px;"></ValidationMessage>
+            <ValidationMessage For="() => _tokenRequest.Password " class="fst-italic text-danger" style="font-size: 12px;"></ValidationMessage>
         </div>
     </div>
     <button class="btn btn-primary">Submit</button>
@@ -30,34 +33,31 @@
 @code {
     private TokenRequest _tokenRequest = new();
     private TokenResponse? _tokenResponse;
-    private async void Submit()
+
+    private string? ApiUrl;
+
+    protected override void OnInitialized()
+    {
+        ApiUrl = _configuration["ApiBaseUrl"];
+    }
+
+    private async Task Submit()
     {
         try
         {
-            var response = await Http.PostAsJsonAsync<TokenRequest>("https://localhost:7200/api/Auth/login ", _tokenRequest);
+            var response = await _http.PostAsJsonAsync<TokenRequest>($"{ApiUrl}/Auth/login ", _tokenRequest);
 
+            var mappedTokenResponse = await response.Content.ReadFromJsonAsync<TokenResponse>();
 
-            var payload = await response.Content.ReadFromJsonAsync<TokenResponse>();
-
-
-            Console.WriteLine("Response: ");
-            Console.WriteLine(response);
-            Console.WriteLine("-------------------------------------------------------------");
-            Console.WriteLine("-------------------------------------------------------------");
-            Console.WriteLine("-------------------------------------------------------------");
-
-            if(payload != null)
+            if (mappedTokenResponse != null)
             {
-                Console.WriteLine("Payload: ");
-                Console.WriteLine($"Token: {payload.AccessToken}");
-                Console.WriteLine($"Refresh Token: {payload.RefreshToken}");
-                Console.WriteLine($"Expires: {payload.ExpiresAt}");
-
+                await _tokenService.SetToken(mappedTokenResponse);
+                _navigationManager.NavigateTo("/");
+                return;
             }
             else
             {
                 Console.WriteLine($"API returned Null.");
-
             }
 
 
