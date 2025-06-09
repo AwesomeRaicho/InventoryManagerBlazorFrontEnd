@@ -1,6 +1,6 @@
 ﻿@page "/login"
 @inject HttpClient _http;
-@inject IConfiguration _configuration;
+@inject IAPIHostUrl _apiHost;
 @inject NavigationManager _navigationManager;
 @inject ITokenService _tokenService;
 
@@ -34,18 +34,12 @@
     private TokenRequest _tokenRequest = new();
     private TokenResponse? _tokenResponse;
 
-    private string? ApiUrl;
-
-    protected override void OnInitialized()
-    {
-        ApiUrl = _configuration["ApiBaseUrl"];
-    }
 
     private async Task Submit()
     {
         try
         {
-            var response = await _http.PostAsJsonAsync<TokenRequest>($"{ApiUrl}/Auth/login ", _tokenRequest);
+            var response = await _http.PostAsJsonAsync<TokenRequest>($"{_apiHost.GetHostUrl()}/api/Auth/login ", _tokenRequest);
 
             var mappedTokenResponse = await response.Content.ReadFromJsonAsync<TokenResponse>();
 

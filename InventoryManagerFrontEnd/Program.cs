@@ -17,8 +17,6 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAPIHostUrl, APIHostUrl>();
 
 
-builder.Services.AddAuthorizationCore();
-
 
 var host = builder.Build();
 

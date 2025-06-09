@@ -1,0 +1,92 @@
+﻿@page "/product-types/edit/{productTypeId}/{productTypeName}/{productTypeConcurrency}"
+@inject NavigationManager _navigationManager;
+@inject ITokenService _tokenService;
+@inject HttpClient _http;
+@inject IAPIHostUrl _apiHost;
+
+
+<h3 class="mb-4">Editing @ProductTypeName</h3>
+
+<EditForm FormName="ProductTypeEdit" Model="_productTypePutRequest" OnValidSubmit="Submit">
+    <input type="text" name="Id" value="@_productTypePutRequest.Id" hidden />
+    <input type="text" name="ConcurrencyStamp" value="@_productTypePutRequest.ConcurrencyStamp" hidden />
+    <div class="mb-3">
+        <label class="form-label">Product type name</label>
+        <InputText @bind-Value="_productTypePutRequest.Name" class="form-control"></InputText>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</EditForm>
+
+
+@code {
+    //authorized field
+    private bool _signed;
+
+    //form model
+    private ProductTypePutRequest _productTypePutRequest = new();
+
+    // parameter fields
+    [Parameter]
+    public string? ProductTypeId { get; set; }
+    [Parameter]
+    public string? ProductTypeName { get; set; }
+    [Parameter]
+    public string? ProductTypeConcurrency { get; set; }
+
+    private byte[]? _concurrencyStampByteArray;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Check if user is signed in
+        _signed = await _tokenService.IsTokenValid();
+
+        if (!_signed)
+        {
+            _navigationManager.NavigateTo("/login");
+        }
+
+        if (string.IsNullOrEmpty(ProductTypeConcurrency))
+        {
+            _navigationManager.NavigateTo("/products-type");
+            Console.WriteLine("Concurrency stamp coming in null, cannot edit.");
+            return;
+        }
+
+        // Convert from URL-safe base64 to standard base64
+        var base64 = ProductTypeConcurrency.Replace("-", "+").Replace("_", "/");
+        // Add padding if needed
+        switch (base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
+
+        _concurrencyStampByteArray = Convert.FromBase64String(base64);
+
+        _productTypePutRequest = new()
+        {
+           Id = ProductTypeId,
+           Name = ProductTypeName,
+           ConcurrencyStamp = _concurrencyStampByteArray
+        };
+
+
+    }
+
+    private async void Submit()
+    {
+        var token = await _tokenService.GetToken();
+        if(token == null)
+        {
+            _navigationManager.NavigateTo("login");
+            return;
+        }
+
+        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+
+        await _http.PutAsJsonAsync<ProductTypePutRequest>($"{_apiHost.GetHostUrl()}/api/ProductType", _productTypePutRequest);
+        _navigationManager.NavigateTo("product-types");
+    }
+
+
+}
