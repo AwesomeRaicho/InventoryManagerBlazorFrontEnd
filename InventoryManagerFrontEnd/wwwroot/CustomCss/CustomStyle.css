@@ -1,0 +1,29 @@
+﻿body {
+}
+
+
+.create-holder
+{
+    background-color: aqua;
+}
+
+.modal-confirmation-background {
+    padding: 50px;
+    background-color: rgba(0, 0, 0, 0.25);
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    height: 100vh;
+    width: 100vw;
+
+    display:flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.delete-modal
+{
+    background-color: white;
+    padding: 15px;
+    border-radius: 10px;
+}

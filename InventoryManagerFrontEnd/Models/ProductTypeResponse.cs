@@ -6,6 +6,10 @@
         public List<ProductTypeResponse>? ProductTypes { get; set; }
     }
 
+    public class ProductTypeJsonResponse
+    {
+        public ProductTypeResponse? ProductType { get; set; }
+    }
 
     public class ProductTypeResponse
     {

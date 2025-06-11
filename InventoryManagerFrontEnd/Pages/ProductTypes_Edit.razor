@@ -1,11 +1,11 @@
-﻿@page "/product-types/edit/{productTypeId}/{productTypeName}/{productTypeConcurrency}"
+﻿@page "/product-types/edit/{productTypeId}"
 @inject NavigationManager _navigationManager;
 @inject ITokenService _tokenService;
 @inject HttpClient _http;
 @inject IAPIHostUrl _apiHost;
 
 
-<h3 class="mb-4">Editing @ProductTypeName</h3>
+<h3 class="mb-4">Editing @_productTypePutRequest.Name</h3>
 
 <EditForm FormName="ProductTypeEdit" Model="_productTypePutRequest" OnValidSubmit="Submit">
     <input type="text" name="Id" value="@_productTypePutRequest.Id" hidden />
@@ -14,66 +14,95 @@
         <label class="form-label">Product type name</label>
         <InputText @bind-Value="_productTypePutRequest.Name" class="form-control"></InputText>
     </div>
-    <button type="submit" class="btn btn-primary">Submit</button>
+    <div class="d-flex justify-content-between">
+        <button type="submit" class="btn btn-primary">Submit</button>
+        <button type="button" class="btn btn-danger" @onclick="DeleteConfirmationModal">Delete</button>
+
+    </div>
 </EditForm>
+
+@if (_confirmDeletionModal)
+{
+    //should cover the entire screen
+    <div class="modal-confirmation-background">
+        
+        <div class="delete-modal">
+            <h3 class="mb-3">Delete "@(_productTypePutRequest.Name)" product type?</h3>
+            <p>Product type contains @(_productCountModel?.Count) product(s). <br/>
+                <span class="fst-italic text-warning">(Product(s) will deleted)</span>
+            </p>
+            
+            <div class="d-flex justify-content-between">
+                <button class="btn btn-success m-2" @onclick="ConfirmDeletion">Yes, please delete.</button>
+                <button class="btn btn-danger m-2" @onclick="CancelDeletion">Cancel, and return.</button>
+
+            </div>
+            @if (_deletingInProcess)
+            {
+                <DefaultLoadingSpiner />
+            }
+            @if (!string.IsNullOrEmpty(_deletionResult))
+            {
+                <p class="text-danger">@(_deletionResult)</p>
+            }
+        </div>
+    
+    </div>
+}
+
 
 
 @code {
+    //cancelation fields
+    private bool _confirmDeletionModal = false;    
+    private ProductCountByProductTypeId? _productCountModel = new();
+    private bool _deletingInProcess = false;
+    private string? _deletionResult;
     //authorized field
     private bool _signed;
 
     //form model
     private ProductTypePutRequest _productTypePutRequest = new();
+    private ProductTypeJsonResponse? _productTypeResponse = new();
 
     // parameter fields
     [Parameter]
     public string? ProductTypeId { get; set; }
-    [Parameter]
-    public string? ProductTypeName { get; set; }
-    [Parameter]
-    public string? ProductTypeConcurrency { get; set; }
 
     private byte[]? _concurrencyStampByteArray;
+
+
 
     protected override async Task OnInitializedAsync()
     {
         // Check if user is signed in
-        _signed = await _tokenService.IsTokenValid();
-
-        if (!_signed)
+        var token = await _tokenService.GetToken();
+        if (token == null)
         {
-            _navigationManager.NavigateTo("/login");
-        }
+            _navigationManager.NavigateTo("login");
 
-        if (string.IsNullOrEmpty(ProductTypeConcurrency))
-        {
-            _navigationManager.NavigateTo("/products-type");
-            Console.WriteLine("Concurrency stamp coming in null, cannot edit.");
             return;
         }
+        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
 
-        // Convert from URL-safe base64 to standard base64
-        var base64 = ProductTypeConcurrency.Replace("-", "+").Replace("_", "/");
-        // Add padding if needed
-        switch (base64.Length % 4)
+        var response = await _http.GetAsync($"{_apiHost.GetHostUrl()}/api/ProductType/{ProductTypeId}");
+
+        if (response.IsSuccessStatusCode)
         {
-            case 2: base64 += "=="; break;
-            case 3: base64 += "="; break;
+            _productTypeResponse = await response.Content.ReadFromJsonAsync<ProductTypeJsonResponse>();
+            if (_productTypeResponse != null)
+            {
+                _productTypePutRequest.Name = _productTypeResponse.ProductType?.Name;
+                _productTypePutRequest.Id = _productTypeResponse.ProductType?.Id;
+                _productTypePutRequest.ConcurrencyStamp = _productTypeResponse.ProductType?.ConcurrencyStamp;
+
+            }
+
         }
-
-        _concurrencyStampByteArray = Convert.FromBase64String(base64);
-
-        _productTypePutRequest = new()
-        {
-           Id = ProductTypeId,
-           Name = ProductTypeName,
-           ConcurrencyStamp = _concurrencyStampByteArray
-        };
-
-
     }
 
-    private async void Submit()
+
+    private async Task Submit()
     {
         var token = await _tokenService.GetToken();
         if(token == null)
@@ -88,5 +117,61 @@
         _navigationManager.NavigateTo("product-types");
     }
 
+    private async Task DeleteConfirmationModal()
+    {
+        //Get the amount of entries under the current type ID
+        Console.WriteLine("Deletion Modal triggered!");
+
+        var token = await _tokenService.GetToken();
+        if(token == null)
+        {
+            _navigationManager.NavigateTo("login");
+
+            return;
+        }
+        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+
+        _productCountModel = await _http.GetFromJsonAsync<ProductCountByProductTypeId>($"{_apiHost.GetHostUrl()}/api/Product/get-count-by-type-id?foreignId={_productTypePutRequest.Id}");
+
+        _confirmDeletionModal = true;
+
+    }
+
+    /// <summary>
+    /// Cancel and close the delete confirmation modal
+    /// </summary>
+    private void CancelDeletion()
+    {
+        _confirmDeletionModal = false;
+    }
+
+    /// <summary>
+    /// confirm the deletion of the product type.o
+    /// </summary>
+    private async void ConfirmDeletion()
+    {
+        _deletingInProcess = true;
+        var token = await _tokenService.GetToken();
+        if(token == null)
+        {
+            _navigationManager.NavigateTo("login");
+            return;
+        }
+
+        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.AccessToken);
+
+        var response = await _http.DeleteAsync($"{_apiHost.GetHostUrl()}/api/ProductType/{_productTypePutRequest.Id}");
+
+        if(response.IsSuccessStatusCode)
+        {
+            _navigationManager.NavigateTo("product-types");
+            return;
+        }else
+        {
+            _deletingInProcess = false;
+            _deletionResult = "Something went wrong when deleting. Please click on cancel top go back";
+
+        }
+    }
 
 }
